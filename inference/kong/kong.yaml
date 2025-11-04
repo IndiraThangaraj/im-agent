@@ -1,0 +1,24 @@
+_format_version: "3.0"
+_transform: true
+
+services:
+  - name: sglang-service
+    url: http://sglang:30000
+    routes:
+      - name: sglang-chat
+        paths:
+          - /v1/chat/completions
+        strip_path: false
+        methods:
+          - POST
+    plugins:
+      - name: key-auth
+        config:
+          key_names:
+            - x-api-key
+          hide_credentials: false
+
+consumers:
+  - username: demo-user
+    keyauth_credentials:
+      - key: DEMO-SECRET-KEY
