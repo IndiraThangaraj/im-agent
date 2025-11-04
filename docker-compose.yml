@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    platform: linux/amd64
+    container_name: n8n_local
+    ports:
+      - "5678:5678"
+    environment:
+     
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres  
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=n8n
+      - DB_POSTGRESDB_PASSWORD=mysecretpassword
+     
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - N8N_SECURE_COOKIE=false
+      - GENERIC_TIMEZONE=Asia/Kuala_Lumpur 
+      - N8N_TELEMETRY=false
+      - N8N_WORKFLOWS_PATH=/workflows
+
+      - WEBHOOK_TUNNEL_URL=http://n8n:5678/
+    volumes:
+      - n8n-data:/home/node/.n8n
+      - ./knowledge_base:/knowledge_base
+      - ./n8n-workflows:/workflows
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    networks:
+      - app-net 
+
+  postgres:
+    image: pgvector/pgvector:pg16 
+    platform: linux/amd64 
+    container_name: postgres_local
+    ports:
+      - "5432:5432" 
+    environment:
+      - POSTGRES_USER=n8n
+      - POSTGRES_PASSWORD=mysecretpassword
+      - POSTGRES_DB=n8n
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    networks:
+      - app-net #
+
+  streamlit:
+    image : indirathangaraj/im_agent_streamlit
+      
+    container_name: streamlit_local
+    ports:
+      - "8501:8501"
+    depends_on:
+      - n8n
+    restart: unless-stopped
+    networks:
+      - app-net 
+
+volumes:
+  n8n-data:
+  postgres-data:
+
+networks:
+  app-net:
+    
