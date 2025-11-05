@@ -1,0 +1,47 @@
+services:
+  sglang:
+    image: lmsysorg/sglang:latest
+    container_name: sglang
+    command: >
+      python -m sglang.launch_server
+      --model-path /models/unsloth/Phi-4-mini-instruct-GGUF
+      --host 0.0.0.0
+      --port 30000
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    volumes:
+      - ./models:/models:ro
+      # - ./hf_cache:/root/.cache/huggingface
+    ports:
+      - "30000:30000"
+    networks:
+      - llmnet
+    # === enable if you have GPUs on Linux ===
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['0']
+              capabilities: [gpu]
+
+  kong:
+    image: kong:3.7
+    container_name: kong
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /kong/declarative/kong.yaml
+      KONG_PROXY_LISTEN: "0.0.0.0:8000"
+      KONG_LOG_LEVEL: info
+    volumes:
+      - ./kong/kong.yaml:/kong/declarative/kong.yaml:ro
+    ports:
+      - "8000:8000"  # public gateway
+    depends_on:
+      - sglang
+    networks:
+      - llmnet
+
+networks:
+  llmnet:
+    driver: bridge
